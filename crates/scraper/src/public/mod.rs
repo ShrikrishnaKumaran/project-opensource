@@ -17,6 +17,7 @@ use reqwest::{
     redirect::Policy,
     Client,
 };
+use std::net::{IpAddr, Ipv4Addr};
 use std::time::Duration;
 
 pub const SASTRA_BASE: &str = "https://www.sastra.edu";
@@ -30,7 +31,6 @@ pub const PUBLIC_UA: &str = "Mozilla/5.0 (Linux; Android 14; Pixel 9) \
 
 pub fn public_client() -> Client {
     let mut headers = HeaderMap::new();
-
     headers.insert(
         "accept",
         HeaderValue::from_static(
@@ -41,18 +41,16 @@ pub fn public_client() -> Client {
         "accept-language",
         HeaderValue::from_static("en-US,en;q=0.9"),
     );
-    // NOTE: "br" removed — brotli feature is not enabled. If you enable
-    // `brotli` in Cargo.toml, you can add "br" back here.
-    headers.insert(
-        "accept-encoding",
-        HeaderValue::from_static("gzip, deflate"),
-    );
 
     Client::builder()
-        .danger_accept_invalid_certs(true)// explicit rustls backend
-        // NO .min_tls_version / .max_tls_version — sastra.edu is TLS 1.2-only
-        .http1_only()               // sastra.edu has no ALPN/HTTP2
+        // 1. Force IPv4 to avoid broken AAAA routes
+        .local_address(IpAddr::V4(Ipv4Addr::UNSPECIFIED))
+        // 2. Limit idle/active pool pressure on sastra.edu's server
+        .pool_max_idle_per_host(2)
+        .danger_accept_invalid_certs(true)
+        .http1_only()
         .redirect(Policy::limited(5))
+        .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(30))
         .default_headers(headers)
         .user_agent(PUBLIC_UA)
