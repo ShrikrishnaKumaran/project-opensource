@@ -31,7 +31,9 @@ captcha = { path = "crates/captcha" }
 storage = { path = "crates/storage" }
 sync = { path = "crates/sync" }
 dioxus = { version = "=0.7.10", features = ["mobile"] }
-reqwest = { version = "=0.12.28", default-features = false, features = ["cookies", "gzip", "json", "rustls-tls"] }
+reqwest = { version = "=0.12.28", default-features = false, features = ["cookies", "gzip", "json", "rustls-tls-webpki-roots"] }
 regex = { version = "=1.13.2" }
 base64 = { version = "=0.22.1" }
 serde_json = { version = "=1.0.154" }
+# HTML scraper — aliased to avoid name collision with our `scraper` workspace member
+html_scraper = { package = "scraper", version = "0.22" }

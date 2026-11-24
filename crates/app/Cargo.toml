@@ -8,6 +8,7 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+domain = { workspace = true }
 storage = { workspace = true }
 sync = { workspace = true }
 dioxus = { workspace = true }

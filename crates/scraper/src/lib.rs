@@ -1,5 +1,12 @@
-//! Scraper layer: network and parsing logic for SASTRA portal.
+//! Scraper layer: network and parsing logic for SASTRA.
 //! Depends only on `domain`.
+//!
+//! ## Modules
+//! - Root (`lib.rs`) — authenticated portal scraper (`webstream.sastra.edu`)
+//! - [`public`]      — unauthenticated public website scraper (`sastra.edu`)
+
+pub mod public;
+pub use public::SastraPublicSource;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -59,7 +66,6 @@ pub fn no_redirect_client() -> Client {
     Client::builder()
         .redirect(Policy::none())
         .timeout(Duration::from_secs(20))
-        .use_rustls_tls()
         .build()
         .unwrap_or_else(|_| Client::new())
 }
@@ -68,7 +74,6 @@ pub fn normal_client() -> Client {
     Client::builder()
         .redirect(Policy::limited(5))
         .timeout(Duration::from_secs(20))
-        .use_rustls_tls()
         .build()
         .unwrap_or_else(|_| Client::new())
 }

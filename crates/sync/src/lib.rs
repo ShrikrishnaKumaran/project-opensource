@@ -1,14 +1,16 @@
-//! Sync coordinator: wires concrete `scraper::SastraPortalSource` into `storage`.
+//! Sync coordinator: wires concrete `scraper::SastraPortalSource` and
+//! `scraper::SastraPublicSource` into `storage`.
 //! Depends on `domain`, `scraper`, `storage`, and `captcha`.
 
 pub use domain::*;
-use scraper::SastraPortalSource;
+use scraper::{SastraPortalSource, SastraPublicSource};
 use storage::Storage;
 
 #[derive(Clone)]
 pub struct SyncService {
     storage: Storage,
     source: SastraPortalSource,
+    public_source: SastraPublicSource,
     ocr_endpoint: String,
 }
 
@@ -23,6 +25,7 @@ impl SyncService {
         Self {
             storage,
             source: SastraPortalSource::new(),
+            public_source: SastraPublicSource::new(),
             ocr_endpoint: "http://localhost:8000/solve".to_string(),
         }
     }
@@ -31,6 +34,7 @@ impl SyncService {
         Self {
             storage,
             source,
+            public_source: SastraPublicSource::new(),
             ocr_endpoint: "http://localhost:8000/solve".to_string(),
         }
     }
@@ -38,6 +42,8 @@ impl SyncService {
     pub fn storage(&self) -> &Storage {
         &self.storage
     }
+
+    // ── Authenticated portal ──────────────────────────────────────────────────
 
     pub async fn fetch_captcha(&self) -> Result<CaptchaChallenge, String> {
         self.source.fetch_captcha().await.map_err(|e| e.to_string())
@@ -87,5 +93,28 @@ impl SyncService {
         self.storage.set_portal_data(data);
 
         Ok(())
+    }
+
+    // ── Public website data ───────────────────────────────────────────────────
+
+    /// Scrape all public SASTRA website data and store it.
+    ///
+    /// This is **network-heavy** (dozens of pages). Call it once on startup
+    /// and then periodically in a background task.
+    pub async fn refresh_public(&self) -> Result<(), String> {
+        let data = self
+            .public_source
+            .fetch_public_data()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        self.storage.set_public_data(data);
+        Ok(())
+    }
+
+    /// Return the last cached public data snapshot (empty on first run before
+    /// [`refresh_public`] completes).
+    pub fn get_public_data(&self) -> PublicData {
+        self.storage.get_public_data()
     }
 }

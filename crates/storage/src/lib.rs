@@ -8,6 +8,8 @@ use std::sync::{Arc, RwLock};
 pub struct Storage {
     session: Arc<RwLock<Option<Session>>>,
     data: Arc<RwLock<PortalData>>,
+    /// Cached public website data (no auth required).
+    public_data: Arc<RwLock<PublicData>>,
 }
 
 impl Storage {
@@ -25,8 +27,11 @@ impl Storage {
                 absent_hours: Vec::new(),
                 course_history: Vec::new(),
             })),
+            public_data: Arc::new(RwLock::new(PublicData::default())),
         }
     }
+
+    // ── Authenticated portal ──────────────────────────────────────────────────
 
     pub fn set_session(&self, session: Session) {
         if let Ok(mut lock) = self.session.write() {
@@ -65,5 +70,22 @@ impl Storage {
             },
             |lock| lock.clone(),
         )
+    }
+
+    // ── Public website data ───────────────────────────────────────────────────
+
+    /// Store a freshly scraped [`PublicData`] snapshot.
+    pub fn set_public_data(&self, data: PublicData) {
+        if let Ok(mut lock) = self.public_data.write() {
+            *lock = data;
+        }
+    }
+
+    /// Read the last cached [`PublicData`] snapshot (may be default/empty on first run).
+    pub fn get_public_data(&self) -> PublicData {
+        self.public_data
+            .read()
+            .ok()
+            .map_or_else(PublicData::default, |lock| lock.clone())
     }
 }

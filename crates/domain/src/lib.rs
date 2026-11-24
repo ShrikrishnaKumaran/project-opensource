@@ -1,4 +1,8 @@
 //! Domain types and traits (no I/O, no heavy dependencies).
+//!
+//! Two top-level data models:
+//! - [`PortalData`]  — authenticated student portal (webstream.sastra.edu)
+//! - [`PublicData`]  — public SASTRA website (sastra.edu), no login required
 
 #[derive(Debug)]
 pub enum DomainError {
@@ -146,4 +150,106 @@ pub trait PortalSource: Send + Sync {
         &self,
         session: &Session,
     ) -> impl std::future::Future<Output = Result<PortalData, DomainError>> + Send;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public website domain types (sastra.edu — no login required)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A single item from a running banner (academic updates / news & events).
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct BannerItem {
+    /// Display text of the banner item.
+    pub title: String,
+    /// Optional hyperlink attached to the item.
+    pub url: Option<String>,
+}
+
+/// A single course entry with a link to its PDF syllabus.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct CourseLink {
+    /// Course code, e.g. "CSE301".
+    pub code: String,
+    /// Human-readable course name.
+    pub name: String,
+    /// Direct URL to the course PDF.
+    pub pdf_url: String,
+}
+
+/// All courses for one semester of a program.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct SemesterCourses {
+    /// Semester number (1–8).
+    pub semester: u8,
+    pub courses: Vec<CourseLink>,
+}
+
+/// Full curriculum tree for one school + program + batch.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct CurriculumProgram {
+    /// School name, e.g. "School of Computing".
+    pub school: String,
+    /// Program code, e.g. "BCSE".
+    pub program: String,
+    /// Regulation / batch year, e.g. "2021-22".
+    pub batch: String,
+    /// URL of the program index page on apps.sastra.edu.
+    pub index_url: String,
+    /// All eight semesters (populated after full scrape).
+    pub semesters: Vec<SemesterCourses>,
+}
+
+/// Detailed information about a faculty member (fetched lazily on demand).
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct FacultyDetail {
+    pub qualifications: String,
+    pub experience: String,
+    pub research_areas: Vec<String>,
+    pub publications: Vec<String>,
+}
+
+/// A faculty member as listed on a school's staff profile page.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct FacultyMember {
+    pub name: String,
+    pub designation: String,
+    pub department: String,
+    pub email: Option<String>,
+    /// Absolute URL to the faculty member's photo, if available.
+    pub photo_url: Option<String>,
+    /// Absolute URL to the individual profile page (used for lazy detail fetch).
+    pub profile_url: String,
+    /// Populated only after [`scrape_faculty_detail`] is called for this member.
+    pub detail: Option<FacultyDetail>,
+}
+
+/// One entry in the academic calendar.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct CalendarEntry {
+    pub event: String,
+    pub date_range: String,
+    /// Link to a downloadable PDF, if the page provides one.
+    pub pdf_url: Option<String>,
+}
+
+/// All public data fetched from the main SASTRA website.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct PublicData {
+    /// Items from the "Academic Updates" running banner.
+    pub academic_updates: Vec<BannerItem>,
+    /// Items from the "News & Events" running banner.
+    pub news_events: Vec<BannerItem>,
+    /// Curriculum tree (school → program → semester → course PDF).
+    pub curriculum: Vec<CurriculumProgram>,
+    /// Faculty directory (all schools combined; detail is lazy).
+    pub faculty: Vec<FacultyMember>,
+    /// Academic calendar entries.
+    pub calendar: Vec<CalendarEntry>,
+}
+
+/// Abstract contract for reading data from the public SASTRA website.
+pub trait PublicSource: Send + Sync {
+    fn fetch_public_data(
+        &self,
+    ) -> impl std::future::Future<Output = Result<PublicData, DomainError>> + Send;
 }
