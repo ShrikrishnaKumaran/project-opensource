@@ -1,3 +1,5 @@
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
+
 default: check
 
 # Run formatting check, clippy with warnings denied, and tests across all workspace crates
