@@ -2,6 +2,7 @@
 //! `scraper::SastraPublicSource` into `storage`.
 //! Depends on `domain`, `scraper`, `storage`, and `captcha`.
 
+pub use captcha::OcrDebugResult;
 pub use domain::*;
 use scraper::{SastraPortalSource, SastraPublicSource};
 use storage::Storage;
@@ -51,6 +52,10 @@ impl SyncService {
 
     pub async fn try_solve_captcha(&self, data_uri: &str) -> Option<String> {
         captcha::try_solve_ocr(data_uri, &self.ocr_endpoint).await
+    }
+
+    pub async fn try_solve_captcha_debug(&self, data_uri: &str) -> OcrDebugResult {
+        captcha::try_solve_ocr_debug(data_uri, &self.ocr_endpoint).await
     }
 
     pub async fn login_and_sync(

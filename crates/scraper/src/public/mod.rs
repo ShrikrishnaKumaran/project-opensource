@@ -28,14 +28,11 @@ pub const PUBLIC_UA: &str = "Mozilla/5.0 (Linux; Android 14; Pixel 9) \
                              NUTS/1.0 (sastra student app)";
 
 /// Build a lightweight HTTP client for public (unauthenticated) requests.
-
 pub fn public_client() -> Client {
     let mut headers = HeaderMap::new();
     headers.insert(
         "accept",
-        HeaderValue::from_static(
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        ),
+        HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
     headers.insert(
         "accept-language",
@@ -57,7 +54,6 @@ pub fn public_client() -> Client {
         .build()
         .expect("failed to build public HTTP client")
 }
-
 
 /// Concrete implementation of [`PublicSource`] for the SASTRA public website.
 #[derive(Clone)]

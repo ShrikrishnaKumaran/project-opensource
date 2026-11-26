@@ -46,6 +46,7 @@ fn App() -> Element {
 
     // Application state
     let mut status_msg = use_signal(|| "Initializing application...".to_string());
+    let mut ocr_debug = use_signal(String::new);
     let mut is_loading = use_signal(|| false);
     let mut portal_data = use_signal(PortalData::default);
     let mut public_data = use_signal(PublicData::default);
@@ -99,7 +100,9 @@ fn App() -> Element {
 
             match svc.fetch_captcha().await {
                 Ok(ch) => {
-                    if let Some(ocr_text) = svc.try_solve_captcha(&ch.data_uri).await {
+                    let ocr = svc.try_solve_captcha_debug(&ch.data_uri).await;
+                    ocr_debug.set(ocr.debug_info);
+                    if let Some(ocr_text) = ocr.text {
                         captcha_input.set(ocr_text);
                         status_msg.set(
                             "Captcha automatically recognized. Verify before signing in."
@@ -144,7 +147,9 @@ fn App() -> Element {
 
                 match svc.fetch_captcha().await {
                     Ok(ch) => {
-                        if let Some(ocr_text) = svc.try_solve_captcha(&ch.data_uri).await {
+                        let ocr = svc.try_solve_captcha_debug(&ch.data_uri).await;
+                        ocr_debug.set(ocr.debug_info);
+                        if let Some(ocr_text) = ocr.text {
                             captcha_input.set(ocr_text);
                             status_msg.set("Captcha automatically recognized.".to_string());
                         } else {
@@ -820,6 +825,23 @@ fn App() -> Element {
                                 value: "{captcha_input()}",
                                 disabled: is_loading(),
                                 oninput: move |e| captcha_input.set(e.value()),
+                            }
+
+                            if !ocr_debug().is_empty() {
+                                div {
+                                    style: "
+                                        margin-top: 6px;
+                                        padding: 6px 8px;
+                                        background: #f8fafc;
+                                        border: 1px solid #e2e8f0;
+                                        border-radius: 4px;
+                                        font-family: monospace;
+                                        font-size: 0.75rem;
+                                        color: #475569;
+                                        word-break: break-word;
+                                    ",
+                                    "OCR: {ocr_debug()}"
+                                }
                             }
                         }
 

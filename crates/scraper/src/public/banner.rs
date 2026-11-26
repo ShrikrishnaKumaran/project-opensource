@@ -11,7 +11,7 @@ use super::SASTRA_BASE;
 /// Fetch and parse the SASTRA homepage.
 ///
 /// Returns:
-/// (academic_updates, news_events)
+/// (`academic_updates`, `news_events`)
 pub async fn scrape_homepage_banners(
     client: &Client,
 ) -> Result<(Vec<BannerItem>, Vec<BannerItem>), DomainError> {
@@ -98,6 +98,7 @@ pub(crate) fn extract_homepage_banners(document: &Html) -> (Vec<BannerItem>, Vec
 ///
 /// Tries the supplied CSS selectors in order and returns
 /// the first selector that produces results.
+#[allow(dead_code)]
 pub(crate) fn extract_banner(document: &Html, selectors: &[&str]) -> Vec<BannerItem> {
     for selector_str in selectors {
         if let Ok(selector) = Selector::parse(selector_str) {
@@ -168,7 +169,3 @@ pub(super) async fn fetch_page(client: &Client, url: &str) -> Result<String, Dom
 
     Ok(body)
 }
-
-// Test-visible re-exports.
-#[cfg(test)]
-pub(crate) use self::{extract_banner as extract_banner_pub, resolve_url as resolve_url_pub};

@@ -54,11 +54,10 @@ pub async fn scrape_academic_calendar(client: &Client) -> Result<Vec<CalendarEnt
 
 /// Collect `(label, absolute_url)` pairs for calendar PDF links.
 fn collect_calendar_pdfs(document: &Html) -> Vec<(String, String)> {
-    let link_sel =
-        match Selector::parse("a[href$='.pdf'], a[href*='calendar'], a[href*='Calendar']") {
-            Ok(s) => s,
-            Err(_) => return Vec::new(),
-        };
+    let Ok(link_sel) = Selector::parse("a[href$='.pdf'], a[href*='calendar'], a[href*='Calendar']")
+    else {
+        return Vec::new();
+    };
 
     document
         .select(&link_sel)
@@ -79,19 +78,18 @@ fn collect_calendar_pdfs(document: &Html) -> Vec<(String, String)> {
 
 /// Parse an embedded `<table>` where rows have event name + date range columns.
 fn parse_calendar_table(document: &Html) -> Vec<CalendarEntry> {
-    let tr_sel = match Selector::parse("table tr") {
-        Ok(s) => s,
-        Err(_) => return Vec::new(),
+    let Ok(row_sel) = Selector::parse("table tr") else {
+        return Vec::new();
     };
-    let td_sel = Selector::parse("td, th").unwrap();
+    let cell_sel = Selector::parse("td, th").unwrap();
     let link_sel = Selector::parse("a[href]").unwrap();
     let tag_re = regex::Regex::new(r"<[^>]+>").expect("static regex");
 
     let mut entries = Vec::new();
 
-    for row in document.select(&tr_sel) {
+    for row in document.select(&row_sel) {
         let cells: Vec<String> = row
-            .select(&td_sel)
+            .select(&cell_sel)
             .map(|td| tag_re.replace_all(&td.inner_html(), "").trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
@@ -118,7 +116,11 @@ fn parse_calendar_table(document: &Html) -> Vec<CalendarEntry> {
         // Check for an inline PDF link in this row.
         let pdf_url = row.select(&link_sel).find_map(|a| {
             let href = a.value().attr("href")?;
-            if href.ends_with(".pdf") || href.contains("calendar") {
+            if std::path::Path::new(href)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("pdf"))
+                || href.contains("calendar")
+            {
                 Some(resolve_url(href))
             } else {
                 None

@@ -6,7 +6,7 @@
 //! **Layer 2** — Each program index page on `apps.sastra.edu`
 //!   Finds semester tabs and course rows with their PDF links.
 //!
-//! **Layer 3** — PDF URLs are stored as-is; the app renders them in a WebView.
+//! **Layer 3** — PDF URLs are stored as-is; the app renders them in a `WebView`.
 
 use html_scraper::{Html, Selector};
 use reqwest::Client;
@@ -73,9 +73,8 @@ pub async fn scrape_curriculum_index(
         .map_err(|e| DomainError::Parse(format!("selector error: {e:?}")))?;
 
     for el in document.select(&link_sel) {
-        let href = match el.value().attr("href") {
-            Some(h) => h,
-            None => continue,
+        let Some(href) = el.value().attr("href") else {
+            continue;
         };
 
         if !href.contains("apps.sastra.edu/prog/") && !href.contains("/prog/") {
@@ -143,7 +142,7 @@ pub async fn scrape_program_semesters(
                     let n = c.trim_start_matches(|ch: char| !ch.is_ascii_digit());
                     let n: u8 = n
                         .chars()
-                        .take_while(|ch| ch.is_ascii_digit())
+                        .take_while(char::is_ascii_digit)
                         .collect::<String>()
                         .parse()
                         .ok()?;
@@ -261,12 +260,12 @@ pub(crate) fn regex_fallback_index(html: &str) -> Vec<(String, String, String, S
     let re = regex::Regex::new(r#"https?://apps\.sastra\.edu/prog/([^/]+)/([^/]+)/([^/"]+)/?"#)
         .expect("static regex");
     re.captures_iter(html)
-        .filter_map(|cap| {
+        .map(|cap| {
             let school = cap[1].to_string();
             let program = cap[2].to_string();
             let batch = cap[3].to_string();
             let url = format!("{APPS_BASE}/prog/{school}/{program}/{batch}/");
-            Some((school, program, batch, url))
+            (school, program, batch, url)
         })
         .collect()
 }
@@ -310,10 +309,3 @@ where
     }
     results
 }
-
-// ── Test-visible re-exports ───────────────────────────────────────────────────
-
-#[cfg(test)]
-pub(crate) use self::{
-    parse_prog_url as parse_prog_url_pub, regex_fallback_index as regex_fallback_index_pub,
-};

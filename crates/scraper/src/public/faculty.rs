@@ -2,8 +2,8 @@
 //!
 //! **Layer 1** — `https://www.sastra.edu/academics/faculty.html`
 //!   Extracts per-school profile page links, e.g.:
-//!   - SoC → `https://www.sastra.edu/staffprofiles/schools/soc.php`
-//!   - SoE → `https://www.sastra.edu/staffprofiles/schools/soe.php`
+//!   - `SoC` → `https://www.sastra.edu/staffprofiles/schools/soc.php`
+//!   - `SoE` → `https://www.sastra.edu/staffprofiles/schools/soe.php`
 //!
 //! **Layer 2** — Each school profile page
 //!   Extracts faculty cards: name, designation, dept, photo, profile URL.
@@ -50,9 +50,8 @@ pub async fn scrape_faculty_schools(client: &Client) -> Result<Vec<(String, Stri
         Selector::parse("a[href]").map_err(|e| DomainError::Parse(format!("selector: {e:?}")))?;
 
     for el in document.select(&link_sel) {
-        let href = match el.value().attr("href") {
-            Some(h) => h,
-            None => continue,
+        let Some(href) = el.value().attr("href") else {
+            continue;
         };
 
         if !href.contains("staffprofiles") && !href.contains("staffprofile") {
@@ -88,8 +87,10 @@ pub async fn scrape_faculty_schools(client: &Client) -> Result<Vec<(String, Stri
             let url = resolve_url(href);
             let name = name_re
                 .captures(&html[cap.get(0).unwrap().start()..])
-                .map(|c| c[1].trim().to_string())
-                .unwrap_or_else(|| url.rsplit('/').next().unwrap_or("").to_string());
+                .map_or_else(
+                    || url.rsplit('/').next().unwrap_or("").to_string(),
+                    |c| c[1].trim().to_string(),
+                );
             if !schools.iter().any(|(_, u)| u == &url) {
                 schools.push((name, url));
             }
@@ -179,7 +180,7 @@ pub async fn scrape_school_faculty(
                     .select(&Selector::parse("img").unwrap())
                     .next()
                     .and_then(|img| img.value().attr("src"))
-                    .map(|src| resolve_url(src));
+                    .map(resolve_url);
 
                 // --- Profile link ---
                 let profile_url = card
@@ -397,15 +398,15 @@ fn regex_list_section(html: &str, keyword: &str) -> Option<Vec<String>> {
 
 /// Last-resort faculty extraction from a plain `<table>`.
 fn table_fallback_faculty(document: &Html, school_url: &str) -> Vec<FacultyMember> {
-    let tr_sel = Selector::parse("table tr").unwrap();
-    let td_sel = Selector::parse("td").unwrap();
+    let row_sel = Selector::parse("table tr").unwrap();
+    let cell_sel = Selector::parse("td").unwrap();
     let tag_re = regex::Regex::new(r"<[^>]+>").expect("static regex");
 
     document
-        .select(&tr_sel)
+        .select(&row_sel)
         .filter_map(|row| {
             let cells: Vec<String> = row
-                .select(&td_sel)
+                .select(&cell_sel)
                 .map(|td| tag_re.replace_all(&td.inner_html(), "").trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect();

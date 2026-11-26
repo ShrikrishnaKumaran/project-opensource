@@ -15,12 +15,12 @@ apk:
 # Build Windows Desktop .exe (optimized release)
 desktop:
     cargo build -p app --release
-    powershell -NoProfile -Command "$dll = (Get-ChildItem -Path target/release/build/webview2-com-sys -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*x64*' } | Select-Object -First 1); if ($dll) { Copy-Item $dll.FullName target/release/WebView2Loader.dll -Force }"
+    $dll = Get-ChildItem -Path target/release/build/webview2-com-sys* -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*x64*' } | Select-Object -First 1; if ($dll) { Copy-Item $dll.FullName target/release/WebView2Loader.dll -Force }
 
 # Run Windows Desktop app locally
 run:
     cargo build -p app
-    powershell -NoProfile -Command "$dll = (Get-ChildItem -Path target/debug/build/webview2-com-sys -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*x64*' } | Select-Object -First 1); if ($dll) { Copy-Item $dll.FullName target/debug/WebView2Loader.dll -Force }"
+    $dll = Get-ChildItem -Path target/debug/build/webview2-com-sys* -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*x64*' } | Select-Object -First 1; if ($dll) { Copy-Item $dll.FullName target/debug/WebView2Loader.dll -Force }
     cargo run -p app
 
 # Check dependencies with cargo-deny
